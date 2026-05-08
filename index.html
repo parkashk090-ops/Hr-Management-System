@@ -369,6 +369,128 @@
             text-align: center;
         }
 
+        /* Menu Styles */
+        .action-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #667eea;
+            padding: 5px 10px;
+            transition: all 0.3s;
+        }
+
+        .menu-btn:hover {
+            color: #764ba2;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 150px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            z-index: 1;
+            top: 100%;
+            margin-top: 5px;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-menu button {
+            color: #333;
+            padding: 12px 16px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+
+        .dropdown-menu button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-menu button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .dropdown-menu button:hover {
+            background-color: #f5f5f5;
+        }
+
+        .dropdown-menu button.delete-option {
+            color: #f44336;
+        }
+
+        .dropdown-menu button.delete-option:hover {
+            background-color: #ffebee;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -729,6 +851,18 @@
         </div>
     </div>
 
+    <!-- View Modal -->
+    <div id="viewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>View Details</h2>
+                <button class="close-btn" onclick="closeViewModal()">&times;</button>
+            </div>
+            <div id="viewModalBody">
+            </div>
+        </div>
+    </div>
+
     <script>
         let employees = [];
         let leaves = [];
@@ -802,6 +936,21 @@
             event.target.classList.add('active');
         }
 
+        // Toggle Menu
+        function toggleMenu(event) {
+            event.stopPropagation();
+            const menu = event.currentTarget.nextElementSibling;
+            document.querySelectorAll('.dropdown-menu.show').forEach(m => {
+                if (m !== menu) m.classList.remove('show');
+            });
+            menu.classList.toggle('show');
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+        });
+
         // ==================== EMPLOYEES ====================
 
         function addEmployee() {
@@ -836,6 +985,39 @@
             alert('Employee added successfully!');
         }
 
+        function viewEmployee(id) {
+            const emp = employees.find(e => e.id === id);
+            if (emp) {
+                const content = `
+                    <p><strong>Name:</strong> ${emp.name}</p>
+                    <p><strong>Email:</strong> ${emp.email}</p>
+                    <p><strong>Phone:</strong> ${emp.phone}</p>
+                    <p><strong>Department:</strong> ${emp.dept}</p>
+                    <p><strong>Position:</strong> ${emp.position}</p>
+                    <p><strong>Visa Expiry:</strong> ${emp.visaExpiry || 'N/A'}</p>
+                    <p><strong>Created:</strong> ${emp.createdAt}</p>
+                `;
+                document.getElementById('viewModalBody').innerHTML = content;
+                document.getElementById('viewModal').classList.add('show');
+            }
+        }
+
+        function editEmployee(id) {
+            const emp = employees.find(e => e.id === id);
+            if (emp) {
+                document.getElementById('empName').value = emp.name;
+                document.getElementById('empEmail').value = emp.email;
+                document.getElementById('empPhone').value = emp.phone;
+                document.getElementById('empDept').value = emp.dept;
+                document.getElementById('empPosition').value = emp.position;
+                document.getElementById('empVisaExpiry').value = emp.visaExpiry;
+                
+                deleteEmployee(id);
+                switchSection('employees');
+                alert('Employee loaded for editing. Update and add again.');
+            }
+        }
+
         function deleteEmployee(id) {
             if (confirm('Delete this employee?')) {
                 employees = employees.filter(e => e.id !== id);
@@ -859,7 +1041,14 @@
                     <td>${emp.position}</td>
                     <td>${emp.visaExpiry || 'N/A'}</td>
                     <td>
-                        <button class="btn btn-danger" onclick="deleteEmployee(${emp.id})">Delete</button>
+                        <div class="action-menu">
+                            <button class="menu-btn" onclick="toggleMenu(event)">⋮</button>
+                            <div class="dropdown-menu">
+                                <button onclick="viewEmployee(${emp.id})">👁️ View</button>
+                                <button onclick="editEmployee(${emp.id})">✏️ Edit</button>
+                                <button class="delete-option" onclick="deleteEmployee(${emp.id})">🗑️ Delete</button>
+                            </div>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1000,6 +1189,7 @@
                 leave.status = 'Rejected';
                 saveData();
                 renderLeaves();
+                updateLeaveBalance();
                 updateDashboard();
                 alert('Leave rejected!');
             }
@@ -1012,6 +1202,24 @@
                 renderLeaves();
                 updateLeaveBalance();
                 updateDashboard();
+            }
+        }
+
+        function viewLeave(id) {
+            const leave = leaves.find(l => l.id === id);
+            if (leave) {
+                const content = `
+                    <p><strong>Employee:</strong> ${leave.empName}</p>
+                    <p><strong>Leave Type:</strong> ${leave.leaveType}</p>
+                    <p><strong>From Date:</strong> ${leave.fromDate}</p>
+                    <p><strong>To Date:</strong> ${leave.toDate}</p>
+                    <p><strong>Days:</strong> ${leave.days}</p>
+                    <p><strong>Reason:</strong> ${leave.reason}</p>
+                    <p><strong>Status:</strong> <span class="status-${leave.status.toLowerCase()}">${leave.status}</span></p>
+                    <p><strong>Created:</strong> ${leave.createdAt}</p>
+                `;
+                document.getElementById('viewModalBody').innerHTML = content;
+                document.getElementById('viewModal').classList.add('show');
             }
         }
 
@@ -1031,11 +1239,17 @@
                     <td>${leave.reason}</td>
                     <td><span class="${statusClass}">${leave.status}</span></td>
                     <td>
-                        ${leave.status === 'Pending' ? `
-                            <button class="btn btn-success" onclick="approveLeave(${leave.id})">Approve</button>
-                            <button class="btn btn-danger" onclick="rejectLeave(${leave.id})">Reject</button>
-                        ` : ''}
-                        <button class="btn btn-danger" onclick="deleteLeave(${leave.id})">Delete</button>
+                        <div class="action-menu">
+                            <button class="menu-btn" onclick="toggleMenu(event)">⋮</button>
+                            <div class="dropdown-menu">
+                                <button onclick="viewLeave(${leave.id})">👁️ View</button>
+                                ${leave.status === 'Pending' ? `
+                                    <button onclick="approveLeave(${leave.id})">✅ Approve</button>
+                                    <button onclick="rejectLeave(${leave.id})">❌ Reject</button>
+                                ` : ''}
+                                <button class="delete-option" onclick="deleteLeave(${leave.id})">🗑️ Delete</button>
+                            </div>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1091,6 +1305,36 @@
             }
         }
 
+        function viewVisaExpense(id) {
+            const expense = visaExpenses.find(v => v.id === id);
+            if (expense) {
+                const content = `
+                    <p><strong>Employee:</strong> ${expense.empName}</p>
+                    <p><strong>Expense Type:</strong> ${expense.expenseType}</p>
+                    <p><strong>Amount:</strong> ${expense.amount} ${expense.currency}</p>
+                    <p><strong>Visa Expiry:</strong> ${expense.expiryDate || 'N/A'}</p>
+                    <p><strong>Date Added:</strong> ${expense.createdAt}</p>
+                `;
+                document.getElementById('viewModalBody').innerHTML = content;
+                document.getElementById('viewModal').classList.add('show');
+            }
+        }
+
+        function editVisaExpense(id) {
+            const expense = visaExpenses.find(v => v.id === id);
+            if (expense) {
+                document.getElementById('visaEmpName').value = expense.empName;
+                document.getElementById('visaExpenseType').value = expense.expenseType;
+                document.getElementById('visaAmount').value = expense.amount;
+                document.getElementById('visaCurrency').value = expense.currency;
+                document.getElementById('visaExpiryDate').value = expense.expiryDate;
+                
+                deleteVisaExpense(id);
+                switchSection('visa');
+                alert('Expense loaded for editing. Update and add again.');
+            }
+        }
+
         function renderVisaExpenses() {
             const tbody = document.getElementById('visaList');
             tbody.innerHTML = '';
@@ -1100,12 +1344,19 @@
                 row.innerHTML = `
                     <td>${expense.empName}</td>
                     <td>${expense.expenseType}</td>
-                    <td>${expense.amount}</td>
+                    <td>${expense.amount.toFixed(2)}</td>
                     <td>${expense.currency}</td>
-                    <td>${expense.expiryDate}</td>
+                    <td>${expense.expiryDate || 'N/A'}</td>
                     <td>${expense.createdAt}</td>
                     <td>
-                        <button class="btn btn-danger" onclick="deleteVisaExpense(${expense.id})">Delete</button>
+                        <div class="action-menu">
+                            <button class="menu-btn" onclick="toggleMenu(event)">⋮</button>
+                            <div class="dropdown-menu">
+                                <button onclick="viewVisaExpense(${expense.id})">👁️ View</button>
+                                <button onclick="editVisaExpense(${expense.id})">✏️ Edit</button>
+                                <button class="delete-option" onclick="deleteVisaExpense(${expense.id})">🗑️ Delete</button>
+                            </div>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1163,6 +1414,39 @@
             }
         }
 
+        function viewCCExpense(id) {
+            const expense = ccExpenses.find(cc => cc.id === id);
+            if (expense) {
+                const content = `
+                    <p><strong>Receipt Number:</strong> ${expense.receiptNo}</p>
+                    <p><strong>Date:</strong> ${expense.date}</p>
+                    <p><strong>Name/Vendor:</strong> ${expense.name}</p>
+                    <p><strong>Description:</strong> ${expense.description}</p>
+                    <p><strong>Amount:</strong> ${expense.amount.toFixed(2)}</p>
+                    <p><strong>Remarks:</strong> ${expense.remarks}</p>
+                    <p><strong>Added:</strong> ${expense.createdAt}</p>
+                `;
+                document.getElementById('viewModalBody').innerHTML = content;
+                document.getElementById('viewModal').classList.add('show');
+            }
+        }
+
+        function editCCExpense(id) {
+            const expense = ccExpenses.find(cc => cc.id === id);
+            if (expense) {
+                document.getElementById('ccReceiptNo').value = expense.receiptNo;
+                document.getElementById('ccDate').value = expense.date;
+                document.getElementById('ccName').value = expense.name;
+                document.getElementById('ccDescription').value = expense.description;
+                document.getElementById('ccAmount').value = expense.amount;
+                document.getElementById('ccRemarks').value = expense.remarks;
+                
+                deleteCCExpense(id);
+                switchSection('creditcard');
+                alert('Expense loaded for editing. Update and add again.');
+            }
+        }
+
         function renderCCExpenses() {
             const tbody = document.getElementById('ccList');
             tbody.innerHTML = '';
@@ -1175,10 +1459,17 @@
                     <td>${expense.date}</td>
                     <td>${expense.name}</td>
                     <td>${expense.description}</td>
-                    <td>PKR ${expense.amount.toFixed(2)}</td>
+                    <td>${expense.amount.toFixed(2)}</td>
                     <td>${expense.remarks}</td>
                     <td>
-                        <button class="btn btn-danger" onclick="deleteCCExpense(${expense.id})">Delete</button>
+                        <div class="action-menu">
+                            <button class="menu-btn" onclick="toggleMenu(event)">⋮</button>
+                            <div class="dropdown-menu">
+                                <button onclick="viewCCExpense(${expense.id})">👁️ View</button>
+                                <button onclick="editCCExpense(${expense.id})">✏️ Edit</button>
+                                <button class="delete-option" onclick="deleteCCExpense(${expense.id})">🗑️ Delete</button>
+                            </div>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1194,43 +1485,6 @@
             document.getElementById('ccRemarks').value = '';
         }
 
-        // ==================== EXPORTS ====================
-
-        function exportPDF() {
-            const element = document.getElementById('ccTable');
-            const opt = {
-                margin: 10,
-                filename: 'Credit_Card_Expenses.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
-            };
-            html2pdf().set(opt).from(element).save();
-        }
-
-        function exportExcel() {
-            const data = [
-                ['S.No', 'Receipt Number', 'Date', 'Name/Vendor', 'Description', 'Amount', 'Remarks']
-            ];
-
-            ccExpenses.forEach((expense, index) => {
-                data.push([
-                    index + 1,
-                    expense.receiptNo,
-                    expense.date,
-                    expense.name,
-                    expense.description,
-                    expense.amount,
-                    expense.remarks
-                ]);
-            });
-
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
-            XLSX.writeFile(wb, 'Credit_Card_Expenses.xlsx');
-        }
-
         // ==================== DASHBOARD ====================
 
         function updateDashboard() {
@@ -1239,6 +1493,39 @@
             document.getElementById('totalVisaExpense').textContent = visaExpenses.length;
             document.getElementById('totalCCExpense').textContent = ccExpenses.length;
         }
+
+        // ==================== EXPORT FUNCTIONS ====================
+
+        function exportPDF() {
+            const element = document.getElementById('ccTable');
+            const opt = {
+                margin: 10,
+                filename: 'credit_card_expenses.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('ccTable'));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+            XLSX.writeFile(wb, 'credit_card_expenses.xlsx');
+        }
+
+        // ==================== MODAL FUNCTIONS ====================
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.remove('show');
+        }
+
+        document.getElementById('viewModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+            }
+        });
     </script>
 </body>
 </html>
