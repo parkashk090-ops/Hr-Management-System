@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HR Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -197,6 +199,26 @@
             background: #45a049;
         }
 
+        .btn-export {
+            background: #2196F3;
+            color: white;
+            padding: 10px 20px;
+            font-size: 0.95em;
+        }
+
+        .btn-export:hover {
+            background: #0b7dda;
+        }
+
+        .btn-export-excel {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-export-excel:hover {
+            background: #45a049;
+        }
+
         .table {
             width: 100%;
             border-collapse: collapse;
@@ -245,46 +267,6 @@
             border-radius: 6px;
             font-weight: 600;
             display: inline-block;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover {
-            color: #000;
         }
 
         .dashboard-stats {
@@ -375,6 +357,18 @@
             color: #667eea;
         }
 
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .sr-no {
+            width: 50px;
+            text-align: center;
+        }
+
         @media (max-width: 768px) {
             .container {
                 flex-direction: column;
@@ -399,6 +393,14 @@
             .table th,
             .table td {
                 padding: 8px;
+            }
+
+            .export-buttons {
+                flex-direction: column;
+            }
+
+            .btn-export {
+                width: 100%;
             }
         }
     </style>
@@ -430,6 +432,7 @@
                 <button class="nav-btn" onclick="switchSection('employees')">👥 Employees</button>
                 <button class="nav-btn" onclick="switchSection('leaves')">📅 Leave Management</button>
                 <button class="nav-btn" onclick="switchSection('visa')">✈️ Visa Expense</button>
+                <button class="nav-btn" onclick="switchSection('creditcard')">💳 Credit Card Expenses</button>
                 <button class="nav-btn" onclick="switchSection('todo')">📝 To-Do List</button>
                 <button class="logout-btn" style="width: 100%; margin-top: 30px;" onclick="logout()">Logout</button>
             </div>
@@ -455,8 +458,8 @@
                             <div class="stat-label">Visa Expenses</div>
                         </div>
                         <div class="stat-card">
-                            <div class="stat-number" id="pendingLeaves">0</div>
-                            <div class="stat-label">Pending Leaves</div>
+                            <div class="stat-number" id="totalCCExpense">0</div>
+                            <div class="stat-label">CC Expenses</div>
                         </div>
                     </div>
                 </div>
@@ -653,6 +656,71 @@
                     </table>
                 </div>
 
+                <!-- Credit Card Expenses Section -->
+                <div id="creditcard" class="section">
+                    <div class="header">
+                        <h1>💳 Credit Card Expenses</h1>
+                    </div>
+
+                    <div class="export-buttons">
+                        <button class="btn btn-export" onclick="exportPDF()">📄 Export as PDF</button>
+                        <button class="btn btn-export-excel" onclick="exportExcel()">📊 Export as Excel</button>
+                    </div>
+
+                    <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="margin-bottom: 20px;">Add Credit Card Expense</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Receipt Number</label>
+                                <input type="text" id="ccReceiptNo" placeholder="e.g., REC-001">
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="ccDate">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name / Vendor</label>
+                                <input type="text" id="ccName" placeholder="Enter name or vendor">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <input type="text" id="ccDescription" placeholder="Enter description">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Amount</label>
+                                <input type="number" id="ccAmount" placeholder="Enter amount" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Remarks</label>
+                                <input type="text" id="ccRemarks" placeholder="Enter remarks">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="addCCExpense()">Add Expense</button>
+                        <button class="btn btn-secondary" onclick="clearCCForm()">Clear</button>
+                    </div>
+
+                    <table class="table" id="ccTable">
+                        <thead>
+                            <tr>
+                                <th class="sr-no">S.No</th>
+                                <th>Receipt Number</th>
+                                <th>Date</th>
+                                <th>Name/Vendor</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Remarks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ccList">
+                        </tbody>
+                    </table>
+                </div>
+
                 <!-- To-Do Section -->
                 <div id="todo" class="section">
                     <iframe src="todo.html" style="width: 100%; height: 800px; border: none; border-radius: 8px;"></iframe>
@@ -665,8 +733,8 @@
         let employees = [];
         let leaves = [];
         let visaExpenses = [];
+        let ccExpenses = [];
 
-        // Leave balance constants
         const LEAVE_BALANCE = {
             'Annual Leave': 30,
             'Sick Leave': 15
@@ -679,6 +747,7 @@
             renderEmployees();
             renderLeaves();
             renderVisaExpenses();
+            renderCCExpenses();
             updateDashboard();
         }
 
@@ -687,10 +756,12 @@
             const savedEmployees = localStorage.getItem('hrEmployees');
             const savedLeaves = localStorage.getItem('hrLeaves');
             const savedVisa = localStorage.getItem('hrVisaExpenses');
+            const savedCC = localStorage.getItem('hrCCExpenses');
 
             if (savedEmployees) employees = JSON.parse(savedEmployees);
             if (savedLeaves) leaves = JSON.parse(savedLeaves);
             if (savedVisa) visaExpenses = JSON.parse(savedVisa);
+            if (savedCC) ccExpenses = JSON.parse(savedCC);
         }
 
         // Save data to localStorage
@@ -698,6 +769,7 @@
             localStorage.setItem('hrEmployees', JSON.stringify(employees));
             localStorage.setItem('hrLeaves', JSON.stringify(leaves));
             localStorage.setItem('hrVisaExpenses', JSON.stringify(visaExpenses));
+            localStorage.setItem('hrCCExpenses', JSON.stringify(ccExpenses));
         }
 
         // Login
@@ -877,6 +949,7 @@
             renderLeaves();
             updateLeaveBalance();
             clearLeaveForm();
+            updateDashboard();
             alert('Leave request submitted!');
         }
 
@@ -1005,6 +1078,7 @@
             saveData();
             renderVisaExpenses();
             clearVisaForm();
+            updateDashboard();
             alert('Visa expense recorded!');
         }
 
@@ -1046,13 +1120,124 @@
             document.getElementById('visaExpiryDate').value = '';
         }
 
+        // ==================== CREDIT CARD EXPENSES ====================
+
+        function addCCExpense() {
+            const receiptNo = document.getElementById('ccReceiptNo').value.trim();
+            const date = document.getElementById('ccDate').value;
+            const name = document.getElementById('ccName').value.trim();
+            const description = document.getElementById('ccDescription').value.trim();
+            const amount = parseFloat(document.getElementById('ccAmount').value);
+            const remarks = document.getElementById('ccRemarks').value.trim();
+
+            if (!receiptNo || !date || !name || !amount) {
+                alert('Please fill all required fields!');
+                return;
+            }
+
+            const expense = {
+                id: Date.now(),
+                receiptNo,
+                date,
+                name,
+                description,
+                amount,
+                remarks,
+                createdAt: new Date().toLocaleDateString()
+            };
+
+            ccExpenses.push(expense);
+            saveData();
+            renderCCExpenses();
+            clearCCForm();
+            updateDashboard();
+            alert('Credit card expense added!');
+        }
+
+        function deleteCCExpense(id) {
+            if (confirm('Delete this expense?')) {
+                ccExpenses = ccExpenses.filter(cc => cc.id !== id);
+                saveData();
+                renderCCExpenses();
+                updateDashboard();
+            }
+        }
+
+        function renderCCExpenses() {
+            const tbody = document.getElementById('ccList');
+            tbody.innerHTML = '';
+
+            ccExpenses.forEach((expense, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="sr-no">${index + 1}</td>
+                    <td>${expense.receiptNo}</td>
+                    <td>${expense.date}</td>
+                    <td>${expense.name}</td>
+                    <td>${expense.description}</td>
+                    <td>PKR ${expense.amount.toFixed(2)}</td>
+                    <td>${expense.remarks}</td>
+                    <td>
+                        <button class="btn btn-danger" onclick="deleteCCExpense(${expense.id})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function clearCCForm() {
+            document.getElementById('ccReceiptNo').value = '';
+            document.getElementById('ccDate').value = '';
+            document.getElementById('ccName').value = '';
+            document.getElementById('ccDescription').value = '';
+            document.getElementById('ccAmount').value = '';
+            document.getElementById('ccRemarks').value = '';
+        }
+
+        // ==================== EXPORTS ====================
+
+        function exportPDF() {
+            const element = document.getElementById('ccTable');
+            const opt = {
+                margin: 10,
+                filename: 'Credit_Card_Expenses.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+
+        function exportExcel() {
+            const data = [
+                ['S.No', 'Receipt Number', 'Date', 'Name/Vendor', 'Description', 'Amount', 'Remarks']
+            ];
+
+            ccExpenses.forEach((expense, index) => {
+                data.push([
+                    index + 1,
+                    expense.receiptNo,
+                    expense.date,
+                    expense.name,
+                    expense.description,
+                    expense.amount,
+                    expense.remarks
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+            XLSX.writeFile(wb, 'Credit_Card_Expenses.xlsx');
+        }
+
         // ==================== DASHBOARD ====================
 
         function updateDashboard() {
             document.getElementById('totalEmployees').textContent = employees.length;
             document.getElementById('totalLeaves').textContent = leaves.length;
             document.getElementById('totalVisaExpense').textContent = visaExpenses.length;
-            document.getElementById('pendingLeaves').textContent = leaves.filter(l => l.status === 'Pending').length;
+            document.getElementById('totalCCExpense').textContent = ccExpenses.length;
         }
     </script>
 </body>
